@@ -1,28 +1,24 @@
 from fastapi import FastAPI, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware # Добавили для связи с фронтом
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import models, schemas
 from database import SessionLocal, engine
 
-# Автоматическое создание базы данных и таблиц при запуске
+# Создаем таблицы при старте
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(
-    title="Bug Tracker API",
-    description="API для системы регистрации багов (тестовый проект)",
-    version="1.0.0"
-)
+app = FastAPI(title="Bug Tracker API")
 
-# Настройка CORS, чтобы React мог делать запросы
+# Настройка CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Разрешить все адреса (для теста это ок)
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Dependency для базы
+# Функция для получения доступа к БД
 def get_db():
     db = SessionLocal()
     try:
@@ -31,28 +27,17 @@ def get_db():
         db.close()
 
 @app.get("/")
-def root():
-    return {"message": "API is running. Go to /docs to see the UI"}
+def home():
+    return {"status": "Working", "docs": "/docs"}
 
 @app.post("/api/bugs", response_model=schemas.BugReportResponse)
-def create_bug_report(bug: schemas.BugReportCreate, db: Session = Depends(get_db)):
-    new_bug = models.BugReport(
-        email=bug.email,
-        author=bug.author,
-        release_build_no=bug.release_build_no,
-        fixed_by=bug.fixed_by,
-        open_date=bug.open_date,
-        close_date=bug.close_date,
-        description=bug.description,
-        priority=bug.priority.value,
-        severity=bug.severity.value,
-        defect_types=bug.defect_types
-    )
-    db.add(new_bug)
+def create_bug(bug: schemas.BugReportCreate, db: Session = Depends(get_db)):
+    db_bug = models.BugReport(**bug.model_dump())
+    db.add(db_bug)
     db.commit()
-    db.refresh(new_bug)
-    return new_bug
+    db.refresh(db_bug)
+    return db_bug
 
-@app.get("/api/bugs")
-def get_all_bugs(db: Session = Depends(get_db)):
+@app.get("/api/bugs", response_model=List[schemas.BugReportResponse])
+def get_bugs(db: Session = Depends(get_db)):
     return db.query(models.BugReport).all()

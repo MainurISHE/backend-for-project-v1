@@ -14,4 +14,4 @@ class BugReport(Base):
     description = Column(Text)
     priority = Column(String)
     severity = Column(String)
-    defect_types = Column(JSON) # Храним список чекбоксов как JSON
+    defect_types = Column(JSON)

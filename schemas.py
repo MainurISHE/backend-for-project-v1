@@ -25,7 +25,6 @@ class BugReportCreate(BaseModel):
     description: str
     priority: PriorityEnum
     severity: SeverityEnum
-    # Список выбранных типов дефектов (чекбоксы на макете)
     defect_types: List[str] 
 
 class BugReportResponse(BugReportCreate):
